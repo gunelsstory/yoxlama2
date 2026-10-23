@@ -54,6 +54,8 @@ publicStop=onSnapshot(collection(store,'tfEvents'),async s=>{
 },fail);
 
 onAuthStateChanged(auth,async user=>{
+  // Gecikmiş auth bildirişi daha yeni giriş/çıxış vəziyyətini dəyişməməlidir.
+  if((user?.uid??null)!==(auth.currentUser?.uid??null))return;
   const run=++sequence;
   stopPrivate();currentUser=user;
   emit({profile:user?profileFallback(user):null,events:null,orders:[],tickets:[],favorites:[]});
@@ -75,7 +77,9 @@ const userAPI={
       cred=await signInWithEmailAndPassword(auth,email,password);
       currentUser=cred.user;
     }
-    // Make navigation responsive even before snapshot listeners report back.
+    // Firebase Auth təsdiqindən dərhal sonra profilin qonaq kimi görünməsinin qarşısını al.
+    const instant=profileFallback(cred.user);
+    emit({profile:instant,favorites:instant.favorites||[]});
     const saved=await getDoc(ref('tfUsers',cred.user.uid)).catch(()=>null);
     const p={...profileFallback(cred.user),...(saved?.exists()?saved.data():{}),id:cred.user.uid,email:cred.user.email};
     emit({profile:p,favorites:p.favorites||[]});
